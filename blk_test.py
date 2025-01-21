@@ -17,7 +17,7 @@ def run_fio_test(name, filename, output):
             f"--filename={filename}",
             "--ioengine=libaio",
             "--direct=1",
-            "--rw=randread", 
+            "--rw=randread",  # Задаем тип операции: randread
             "--bs=4k",
             "--size=1G",
             "--numjobs=1",
@@ -35,11 +35,14 @@ def run_fio_test(name, filename, output):
         # Извлечение средней задержки из результатов
         try:
             fio_output = json.loads(result.stdout)
-            latency = fio_output["jobs"][0]["latency"]["mean"] / 1000  # Преобразуем в миллисекунды
+            # Извлекаем среднюю задержку из "read" -> "lat_ns" -> "mean"
+            latency = fio_output["jobs"][0]["read"]["lat_ns"]["mean"] / 1e6  # Преобразуем из наносекунд в миллисекунды
             results["iodepth"].append(iodepth)
             results["latency"].append(latency)
+        except KeyError as e:
+            print(f"Ошибка парсинга: ключ {e} отсутствует в выводе fio")
         except Exception as e:
-            print(f"Ошибка парсинга вывода fio: {e}")
+            print(f"Ошибка: {e}")
 
     # Сохраняем график
     save_plot(results, output)
